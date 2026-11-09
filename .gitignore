@@ -1,0 +1,38 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+secrets/
+credentials/
+credentials.json
+service-account*.json
+*.pem
+*.key
+
+# Temporary and editor files
+*.tmp
+*.log
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Downloaded datasets and training outputs
+data/
+datasets/
+downloads/
+checkpoints/
+logs/
+runs/
+*.ckpt
+*.weights.h5

@@ -1,245 +1,211 @@
+# Real-Time Hand Gesture Recognition Using CNN and MediaPipe
 
-# Real-Time Hand Gesture Recognition System
+A webcam-based hand gesture recognition system that classifies six static hand gestures in real time. The application uses **MediaPipe** to detect the hand and locate its landmarks, then uses a **MobileNetV2 CNN** to classify a cropped RGB image.
 
-## 1. Project Overview
+> **Important:** This is image-based classification with landmark-guided preprocessing. The 21 MediaPipe landmark coordinates are used to locate and crop the hand; they are **not** passed directly to the CNN.
 
-The Real-Time Hand Gesture Recognition System is a computer vision application developed using Python, OpenCV and MediaPipe, with a Convolutional Neural Network (CNN) for gesture classification.
+## Features
 
-The system detects a human hand through a webcam, extracts hand landmarks, processes the hand region and recognizes predefined hand gestures in real time.
+- Real-time webcam input using OpenCV
+- Hand detection and 21-landmark extraction using MediaPipe Tasks
+- Landmark-guided, padded square hand crop
+- 160 × 160 RGB image input to the classifier
+- Six-class gesture recognition using MobileNetV2
+- Temporal smoothing to reduce frame-to-frame prediction flicker
+- On-screen gesture label, confidence and FPS
+- No-hand handling: skips classification when a hand is not detected
+- Press `Q` or `Esc` to exit the application
 
-The project aims to demonstrate the application of computer vision and deep learning for natural human-computer interaction.
+## Supported Gestures
 
-## 2. Objectives
+| Dataset class | Display label |
+|---|---|
+| `palm` | Open Palm |
+| `fist` | Fist |
+| `like` | Thumbs Up |
+| `peace` | Peace Sign |
+| `point` | Pointing Finger |
+| `ok` | OK Sign |
 
-- Detect human hands through a webcam.
-- Extract and visualize 21 hand landmarks.
-- Recognize six predefined hand gestures.
-- Develop a CNN-based gesture classification model.
-- Integrate the trained model with MediaPipe and OpenCV.
-- Display recognized gestures in real time.
+## System Architecture
 
-## 3. Supported Gestures
+```text
+Webcam
+  |
+  v
+OpenCV frame capture
+  |
+  v
+MediaPipe HandLandmarker
+  | detects hand and returns 21 landmarks
+  v
+Landmark-guided hand crop
+  | padded square crop, resized to 160 x 160 RGB
+  v
+MobileNetV2 CNN (TensorFlow / Keras)
+  | six-class probabilities
+  v
+Temporal smoothing
+  |
+  v
+Gesture label + confidence + FPS
+```
 
-The system is designed to recognize:
+If MediaPipe does not detect a hand, the application displays the no-hand state and skips cropping and CNN classification for that frame.
 
-1. Open Palm
-2. Fist
-3. Thumbs Up
-4. Peace Sign
-5. Pointing Finger
-6. OK Sign
-
-## 4. Technology Stack
+## Technology Stack
 
 | Technology | Purpose |
 |---|---|
-| Python | Primary programming language |
-| OpenCV | Webcam access and image processing |
-| MediaPipe | Hand detection and landmark extraction |
-| NumPy | Numerical operations |
-| TensorFlow / Keras | CNN development and inference |
-| MobileNetV2 | CNN architecture using transfer learning |
-| Google Colab | GPU-based model training |
+| Python 3.13.5 | Main programming language (verified local environment) |
+| OpenCV 5.0.0.93 (`opencv-contrib-python`) | Webcam capture, frame handling and display |
+| MediaPipe 0.10.35 | Hand detection and landmark extraction |
+| TensorFlow 2.21.0 / Keras | CNN model training and inference |
+| NumPy 2.5.4 | Numerical operations and image arrays |
+| Google Colab | Model training environment |
+| NVIDIA Tesla T4 | Training accelerator used in Colab |
+| Debian 13 (Trixie) | Local development and inference environment |
 
-## 5. System Architecture
+The real-time application runs locally on CPU. The NVIDIA Tesla T4 was used for training in Google Colab.
+The pinned packages in `requirements.txt` match the local Python 3.13.5 environment; other Python versions have not been verified. The requirements file covers the webcam application's runtime. The external training notebook is not available in this repository, so any notebook-only dependencies are not independently verified here.
 
-The proposed system consists of the following stages:
+## Model
 
-1. Webcam captures live video frames.
-2. OpenCV processes the captured frames.
-3. MediaPipe detects the hand and extracts 21 landmarks.
-4. The hand region is extracted and preprocessed.
-5. The trained CNN predicts the gesture class.
-6. OpenCV displays the recognized gesture and confidence score.
+- **Architecture:** MobileNetV2
+- **Pretraining:** ImageNet
+- **Approach:** Transfer learning
+- **Base network:** Frozen feature extractor
+- **Classification head:** Global Average Pooling, Dropout (0.3), Dense layer with six softmax outputs
+- **Input:** 160 × 160 × 3 RGB image
+- **Training:** 10 epochs
 
-## 6. Project Structure
+The saved model was loaded and checked locally: it has 2,265,670 parameters, with a frozen 2,257,984-parameter MobileNetV2 base and 7,686 trainable head parameters. It includes a training-time augmentation layer (horizontal flip, rotation, zoom and contrast) and MobileNetV2 input scaling; random augmentation is inactive during inference.
 
-```text
-HandGestureRecognition/
-│
-├── backup/
-│   └── main_rule_based.py
-│
-├── models/
-│   ├── hand_landmarker.task
-│   └── gesture_cnn.keras
-│
-├── training/
-│   └── train_cnn.py
-│
-├── results/
-│
-├── main.py
-├── requirements.txt
-├── README.md
-└── HandGesture_CNN_Training.ipynb
-```
+## Dataset and Training
 
-Note: Files marked as future training or integration outputs will be added as development progresses.
+The model was trained using a curated six-class subset of the [HaGRID dataset](https://huggingface.co/datasets/ntsrigaud/hagrid-subset).
 
-## 7. Installation
+| Split | Images |
+|---|---:|
+| Training | 3,648 |
+| Validation | 432 |
+| Test | 720 |
+| **Total selected** | **4,800** |
 
-### Prerequisites
+Landmark-guided crop generation succeeded for 4,564 of the 4,800 images (95.08%). The recorded split counts are:
 
-- Python 3.11 or later
-- Webcam
-- Debian or another compatible Linux distribution
+| Split | Selected images | Successfully processed |
+|---|---:|---:|
+| Training | 3,648 | 3,447 |
+| Validation | 432 | 415 |
+| Test | 720 | 702 |
+| **Total** | **4,800** | **4,564** |
 
-### Clone or navigate to the project
+For each frame, MediaPipe's 21 landmarks determine a square hand crop with 35% padding. The crop is converted to RGB, resized to 160 × 160, and passed to the CNN as float32 pixel values in the 0–255 range. Preprocessing to the MobileNetV2 input range is embedded in the saved model, so the application does not normalize the input a second time. Training was performed in Google Colab using an NVIDIA Tesla T4 GPU. The MobileNetV2 base was frozen while the custom six-class classification head was trained.
+
+### Model Training Notebook
+
+The training notebook includes dataset preparation, MediaPipe-based cropping, image preprocessing, MobileNetV2 transfer learning, model training, validation and test evaluation.
+
+**[https://colab.research.google.com/drive/1edxmAFBRFrIyyfG_xHzGWF9wukTyEqoH?usp=sharing](https://colab.research.google.com/drive/1edxmAFBRFrIyyfG_xHzGWF9wukTyEqoH?usp=sharing)**
+
+The notebook is hosted separately in Google Colab and is not included in this repository.
+
+### Reported Results
+
+| Metric | Result |
+|---|---:|
+| Final training accuracy | 83.35% |
+| Best validation accuracy | 84.58% |
+| Held-out test accuracy | **83.76%** |
+
+Test accuracy was measured on 702 successfully processed held-out test images. It is an offline test-set result, **not** a measured live-webcam accuracy.
+
+The live webcam application was manually checked with all six gestures. This was a qualitative functional check, not a formal statistical accuracy evaluation. Observed CPU inference speed was approximately 6.9–8.5 FPS and varied with runtime conditions.
+
+## Project Setup
+
+### 1. Clone the Repository
 
 ```bash
-cd ~/HandGestureRecognition
+git clone https://github.com/pranavkudupudi-svg/HandGestureRecognition.git
+cd HandGestureRecognition
 ```
 
-### Create virtual environment
+### 2. Create and Activate a Virtual Environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### Install dependencies
+### 3. Install Dependencies
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### Download the MediaPipe hand landmark model
+### 4. Verify the Required Model Assets
 
-The model is stored in:
+The required assets are included in the repository at the paths used by `main.py`:
 
-```text
-models/hand_landmarker.task
-```
+- `models/gesture_cnn.keras` — trained six-class Keras model
+- `models/class_names.json` — output-index to gesture-label mapping
+- `models/hand_landmarker.task` — MediaPipe HandLandmarker model
 
-## 8. Running the Application
+No separate model download is required for these files. Keep the filenames and paths unchanged unless you also update `main.py`.
 
-Activate the virtual environment:
-
-```bash
-source .venv/bin/activate
-```
-
-Run the application:
+### 5. Run the Application
 
 ```bash
 python main.py
 ```
 
-To select another webcam:
+Allow webcam access if prompted. Show one of the six supported static gestures to the camera. Press `Q` or `Esc` to close the application.
+Use `--camera N` to select a different camera index, `--no-preview` to hide the separate crop-preview window, `P` to print the top three predictions, and `V` to toggle the crop preview.
 
-```bash
-python main.py --camera 1
-```
+## How the Application Works
 
-Press Q or ESC to close the application.
+1. OpenCV captures a frame from the webcam.
+2. The frame is converted to the colour format required by MediaPipe.
+3. MediaPipe detects the hand and returns 21 landmarks.
+4. Landmark coordinates determine a padded, square hand region.
+5. The crop is resized to 160 × 160 and prepared as an RGB image.
+6. TensorFlow/Keras runs the image through the MobileNetV2 classifier.
+7. Recent predictions are smoothed to reduce flicker.
+8. OpenCV displays the predicted gesture, confidence and FPS.
 
-## 9. CNN Training
+MobileNetV2 preprocessing is embedded in the model. The inference pipeline must use the input range expected by the saved model and must not apply duplicate normalization.
 
-The CNN is planned to use MobileNetV2 transfer learning.
+## Limitations
 
-### Training configuration
+- Recognises six static gestures only.
+- Does not recognise dynamic gestures or full sign language.
+- Lighting, occlusion, camera quality and hand orientation can affect performance.
+- Similar-looking gestures can be confused.
+- Live CPU inference is relatively slow on the development machine.
+- Live testing was qualitative; no formal live accuracy benchmark was conducted.
 
-| Parameter | Planned configuration |
-|---|---|
-| Architecture | MobileNetV2 |
-| Input dimensions | 128 × 128 |
-| Number of classes | 6 |
-| Initial epochs | 8–12 |
-| Batch size | 32 |
-| Optimizer | Adam |
-| Loss function | Categorical Crossentropy |
-| Framework | TensorFlow / Keras |
-| Training environment | Google Colab GPU |
+## Future Improvements
 
-The HaGRID hand gesture dataset subset is being considered for training.
+- Add more gesture classes and varied training examples.
+- Improve robustness to lighting, backgrounds and hand orientation.
+- Fine-tune selected MobileNetV2 layers and evaluate the effect.
+- Optimise inference through quantisation or other deployment techniques.
+- Explore dynamic gesture recognition using frame sequences.
+- Compare the CNN approach against landmark-based classifiers such as SVM or Random Forest.
 
-Dataset source:
-https://huggingface.co/datasets/ntsrigaud/hagrid-subset
+## References
 
-The dataset will be inspected and filtered to retain the six required gesture classes.
-
-### Model output
-
-The trained model is intended to be exported as:
-
-```text
-models/gesture_cnn.keras
-```
-
-## 10. Model Evaluation
-
-The trained CNN will be evaluated using:
-
-- Training accuracy
-- Validation accuracy
-- Test accuracy
-- Precision
-- Recall
-- F1-score
-- Confusion matrix
-
-Evaluation results will be documented after actual training and testing.
-
-## 11. Testing
-
-The application will be tested for:
-
-- Webcam initialization.
-- Hand landmark detection.
-- Recognition of all six gestures.
-- No-hand detection.
-- Recognition stability.
-- Real-time responsiveness.
-- Application exit functionality.
-
-Actual observations and screenshots will be added after testing.
-
-## 12. Limitations
-
-Potential limitations include:
-
-- Performance variations due to lighting conditions.
-- Gesture recognition errors caused by hand orientation.
-- Partial hand visibility.
-- Similarity between certain hand gestures.
-- Dataset-to-webcam domain differences.
-- Hardware-dependent inference performance.
-
-## 13. Future Scope
-
-Possible improvements include:
-
-- Recognition of additional hand gestures.
-- Dynamic gesture recognition.
-- Sign language recognition.
-- Gesture-controlled computer applications.
-- Improved model accuracy through additional training data.
-- Deployment on mobile and embedded devices.
-
-## 14. Project Status
-
-| Component | Status |
-|---|---|
-| Python environment | Completed |
-| MediaPipe installation | Completed |
-| Hand landmark model | Downloaded |
-| Webcam integration | Tested |
-| 21 landmark visualization | Tested |
-| Initial rule-based classifier | Implemented |
-| CNN dataset preparation | Pending |
-| CNN training | Pending |
-| CNN evaluation | Pending |
-| CNN integration | Pending |
-| Final application testing | Pending |
-
----
+1. HaGRID subset: https://huggingface.co/datasets/ntsrigaud/hagrid-subset
+2. MediaPipe Hand Landmarker: https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker
+3. TensorFlow: https://www.tensorflow.org/
+4. MobileNetV2: https://arxiv.org/abs/1801.04381
+5. OpenCV: https://opencv.org/
 
 ## Author
 
-**K Bhaskara Pranav Sai**
-
-Roll Number: 23STUCHH011373
-
-Faculty of Science & Technology  
+**K Bhaskara Pranav Sai**<br>
+B.Tech — Artificial Intelligence<br>
 The ICFAI Foundation for Higher Education, Hyderabad
