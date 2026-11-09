@@ -67,7 +67,7 @@ If MediaPipe does not detect a hand, the application displays the no-hand state 
 | Debian 13 (Trixie) | Local development and inference environment |
 
 The real-time application runs locally on CPU. The NVIDIA Tesla T4 was used for training in Google Colab.
-The pinned packages in `requirements.txt` match the local Python 3.13.5 environment; other Python versions have not been verified. The requirements file covers the webcam application's runtime. The external training notebook is not available in this repository, so any notebook-only dependencies are not independently verified here.
+The pinned packages in `requirements.txt` match the local Python 3.13.5 environment; other Python versions have not been verified. The requirements file covers the webcam application's runtime. Notebook-specific packages are installed by the training notebook and are separate from the webcam runtime requirements.
 
 ## Model
 
@@ -105,11 +105,11 @@ For each frame, MediaPipe's 21 landmarks determine a square hand crop with 35% p
 
 ### Model Training Notebook
 
-The training notebook includes dataset preparation, MediaPipe-based cropping, image preprocessing, MobileNetV2 transfer learning, model training, validation and test evaluation.
+The [training notebook](notebooks/HandGesture_CNN_Training.ipynb) is included in this repository and is also available in Google Colab. It contains dataset preparation, MediaPipe-based cropping, image preprocessing, MobileNetV2 transfer learning, model training, validation and test evaluation. The notebook targets Google Colab; its saved outputs were cleared before publication to avoid bundling dataset images and environment-specific output.
 
 **[https://colab.research.google.com/drive/1edxmAFBRFrIyyfG_xHzGWF9wukTyEqoH?usp=sharing](https://colab.research.google.com/drive/1edxmAFBRFrIyyfG_xHzGWF9wukTyEqoH?usp=sharing)**
 
-The notebook is hosted separately in Google Colab and is not included in this repository.
+Training requires access to the HaGRID subset referenced in the notebook. Run the cells in order in a suitable Colab runtime to reproduce training and evaluation; the notebook has not been executed as part of this repository audit.
 
 ### Reported Results
 
