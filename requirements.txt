@@ -1,0 +1,12 @@
+
+# Computer Vision
+opencv-python==5.0.0
+
+# Hand Detection and Landmark Tracking
+mediapipe==0.10.35
+
+# Numerical Operations
+numpy==2.5.4
+
+# CNN Training and Inference
+tensorflow==2.21.0

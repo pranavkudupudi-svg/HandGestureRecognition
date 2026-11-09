@@ -1,0 +1,26 @@
+{
+    "0": {
+        "label": "palm",
+        "display_name": "Open Palm"
+    },
+    "1": {
+        "label": "fist",
+        "display_name": "Fist"
+    },
+    "2": {
+        "label": "like",
+        "display_name": "Thumbs Up"
+    },
+    "3": {
+        "label": "peace",
+        "display_name": "Peace Sign"
+    },
+    "4": {
+        "label": "point",
+        "display_name": "Pointing Finger"
+    },
+    "5": {
+        "label": "ok",
+        "display_name": "OK Sign"
+    }
+}

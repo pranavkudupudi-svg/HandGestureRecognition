@@ -1,0 +1,8 @@
+{
+    "test_accuracy": 0.8376068376068376,
+    "training_time_seconds": 60.88934588432312,
+    "epochs_completed": 10,
+    "training_images": 3447,
+    "validation_images": 415,
+    "test_images": 702
+}
